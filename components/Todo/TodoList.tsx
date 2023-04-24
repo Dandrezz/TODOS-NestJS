@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { TodoResponse } from '@/interfaces/TodoResponse'
 
 interface TodosProps {
     id: number,
@@ -9,30 +10,79 @@ interface TodosProps {
     editable: boolean
 }
 
-let lastId = 0
+const URL_API = process.env.urlApi||'http://localhost:8000/todo'
 
 const TodoList = () => {
 
     const [todos, setTodos] = useState<TodosProps[]>([])
 
+    const fetchTodos = async () => {
+        const res = await fetch(URL_API,
+            {
+                method: "GET",
+                headers: {"Content-type": "application/json;charset=UTF-8"}
+            })
+        const data = await res.json()
+        const DTOdata = data.map((todo: TodoResponse)=>({
+            id: todo._id,
+            nombre: todo.name,
+            estado: todo.status,
+        }))
+        return DTOdata
+    }
+
+    useEffect(() => {
+        fetchTodos().then(data=>setTodos(data))
+    }, [])
+
     const handleAddClick = () => {
-        lastId += 1
         const newTodo = {
-            id: lastId,
-            nombre: 'Tarea ' + (lastId),
+            nombre: 'Tarea ' + (Math.floor(Math.random() * 100)),
             estado: false,
             editable: false,
         }
-        setTodos([...todos, newTodo])
+        fetch(URL_API,
+        {
+            method: "POST",
+            headers: {"Content-type": "application/json;charset=UTF-8"},
+            body: JSON.stringify({
+                name: newTodo.nombre,
+                status: newTodo.estado
+            })
+        }).then(data => data.json()).then(data => {
+            setTodos([...todos, {
+                id: data._id,
+                nombre: newTodo.nombre,
+                estado: newTodo.estado,
+                editable: newTodo.editable
+            }])
+        })
     }
 
     const handleEditClick = (id: number) => {
+        const todo = todos.find(todo => todo.id === id)
+        if(todo?.editable) {
+            fetch(URL_API+'/'+id,
+            {
+                method: "PUT",
+                headers: {"Content-type": "application/json;charset=UTF-8"},
+                body: JSON.stringify({
+                    name: todo!.nombre,
+                    status: todo!.estado
+                })
+            })
+        }
         setTodos(todos.map(todo => {
             return todo.id === id ? { ...todo, editable: !todo.editable } : todo
         }))
     }
 
     const handleRemoveClick = (id: number) => {
+        fetch(URL_API+'/'+id,
+        {
+            method: "DELETE",
+            headers: {"Content-type": "application/json;charset=UTF-8"}
+        })
         setTodos(todos.filter(todo => todo.id !== id))
     }
 
