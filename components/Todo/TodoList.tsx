@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 interface TodosProps {
     id: number,
@@ -14,6 +14,17 @@ let lastId = 0
 const TodoList = () => {
 
     const [todos, setTodos] = useState<TodosProps[]>([])
+
+    useEffect(() => {
+        const todos = JSON.parse(localStorage.getItem('todos') || '[]')
+        if (todos) {
+            setTodos(todos)
+        }
+    }, [])
+
+    useEffect(() => {
+        localStorage.setItem('todos', JSON.stringify(todos))
+    }, [todos])
 
     const handleAddClick = () => {
         lastId += 1
